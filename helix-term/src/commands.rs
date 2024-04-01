@@ -616,6 +616,8 @@ impl MappableCommand {
         goto_prev_tabstop, "Goto next snippet placeholder",
         rotate_selections_first, "Make the first selection your primary one",
         rotate_selections_last, "Make the last selection your primary one",
+        buffer_order_increment, "Increment current buffer's order",
+        buffer_order_decrement, "Decrement current buffer's order",
     );
 }
 
@@ -919,12 +921,12 @@ fn goto_buffer(editor: &mut Editor, direction: Direction, count: usize) {
 
     let id = match direction {
         Direction::Forward => {
-            let iter = editor.documents.keys();
+            let iter = editor.document_ordering.iter();
             // skip 'count' times past current buffer
             iter.cycle().skip_while(|id| *id != &current).nth(count)
         }
         Direction::Backward => {
-            let iter = editor.documents.keys();
+            let iter = editor.document_ordering.iter();
             // skip 'count' times past current buffer
             iter.rev()
                 .cycle()
@@ -7004,6 +7006,34 @@ fn goto_word(cx: &mut Context) {
 
 fn extend_to_word(cx: &mut Context) {
     jump_to_word(cx, Movement::Extend)
+}
+
+fn buffer_order_increment(cx: &mut Context) {
+    let current_doc_id = doc_mut!(cx.editor).id();
+    let doc_idx = cx
+        .editor
+        .document_ordering
+        .iter()
+        .position(|id| id == &current_doc_id)
+        .unwrap();
+
+    if doc_idx < cx.editor.document_ordering.len() - 1 {
+        cx.editor.document_ordering.swap(doc_idx, doc_idx + 1);
+    }
+}
+
+fn buffer_order_decrement(cx: &mut Context) {
+    let current_doc_id = doc_mut!(cx.editor).id();
+    let doc_idx = cx
+        .editor
+        .document_ordering
+        .iter()
+        .position(|id| id == &current_doc_id)
+        .unwrap();
+
+    if doc_idx > 0 {
+        cx.editor.document_ordering.swap(doc_idx, doc_idx - 1);
+    }
 }
 
 fn jump_to_label(cx: &mut Context, labels: Vec<Range>, behaviour: Movement) {
